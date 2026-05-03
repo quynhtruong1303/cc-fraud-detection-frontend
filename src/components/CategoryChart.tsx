@@ -29,7 +29,7 @@ export default function CategoryChart({ data }: Props) {
   }))
 
   return (
-    <ResponsiveContainer width="100%" height={360}>
+    <ResponsiveContainer width="100%" height={520}>
       <BarChart
         data={chartData}
         layout="vertical"

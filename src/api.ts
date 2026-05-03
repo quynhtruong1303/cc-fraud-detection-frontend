@@ -73,6 +73,16 @@ export type FlaggedRow = {
   is_anomaly: boolean
 }
 
+export type GeoRow = {
+  state: string
+  city: string
+  lat: number
+  long: number
+  total_transactions: number
+  fraud_transactions: number
+  fraud_rate: number
+}
+
 export type DoubleFlaggedRow = {
   transaction_id: string
   trans_date_trans_time: string
@@ -93,6 +103,7 @@ export const api = {
   byAmount: () => get<AmountRow[]>('/api/analytics/by-amount'),
   clusters: (dimension?: string) =>
     get<ClusterRow[]>(`/api/analytics/clusters${dimension ? `?dimension=${dimension}` : ''}`),
+  byGeo: () => get<GeoRow[]>('/api/analytics/by-geo'),
   flagged: () => get<FlaggedRow[]>('/api/analytics/flagged'),
   doubleFlagged: () => get<DoubleFlaggedRow[]>('/api/analytics/double-flagged'),
 }
