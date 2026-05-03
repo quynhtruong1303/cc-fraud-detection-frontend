@@ -1,71 +1,97 @@
+import { useEffect, useState } from 'react'
+import { api } from '../api'
+import type { Summary, CategoryRow, LocationRow, AmountRow, ClusterRow, FlaggedRow, DoubleFlaggedRow } from '../api'
 import KpiCard from './KpiCard'
 import Panel from './Panel'
-import Placeholder from './Placeholder'
-import TransactionsTable, { type TxRow } from './TransactionsTable'
+import CategoryChart from './CategoryChart'
+import LocationTable from './LocationTable'
+import AmountTable from './AmountTable'
+import ClusterPanel from './ClusterPanel'
+import DoubleFlaggedTable from './DoubleFlaggedTable'
+import TransactionsTable from './TransactionsTable'
+import type { TxRow } from './TransactionsTable'
 
-const takeaways = [
-  'Fraud is highly imbalanced; reporting focuses on rate, $ exposure, and investigation queue.',
-  'Amount-based segmentation is included since some datasets may be anonymized (no merchant/location).',
-  'Next step: export notebook aggregates to JSON and replace these mock values.',
-]
+function fmt(n: number) {
+  return n.toLocaleString()
+}
 
-const investigations: TxRow[] = [
-  {
-    id: 'inv_001',
-    timestamp: '2026-04-25 21:14',
-    merchant: 'N/A (anonymized)',
-    category: 'N/A',
-    amount: 842.33,
-    location: 'N/A',
+function dollar(n: number) {
+  return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function pct(r: number) {
+  return (r * 100).toFixed(2) + '%'
+}
+
+function toTxRow(r: FlaggedRow): TxRow {
+  return {
+    id: r.trans_num,
+    timestamp: r.trans_date_trans_time?.slice(0, 16) ?? '—',
+    merchant: r.merchant ?? '—',
+    category: r.category ?? '—',
+    amount: Number(r.amt),
+    location: r.city && r.state ? `${r.city}, ${r.state}` : '—',
     status: 'flagged',
-    score: 0.972,
-  },
-  {
-    id: 'inv_002',
-    timestamp: '2026-04-25 20:58',
-    merchant: 'N/A (anonymized)',
-    category: 'N/A',
-    amount: 1299.0,
-    location: 'N/A',
-    status: 'declined',
-    score: 0.989,
-  },
-  {
-    id: 'inv_003',
-    timestamp: '2026-04-25 18:02',
-    merchant: 'N/A (anonymized)',
-    category: 'N/A',
-    amount: 146.12,
-    location: 'N/A',
-    status: 'flagged',
-    score: 0.915,
-  },
-]
-
-const amountBuckets = [
-  { bucket: '$0–$10', fraudRate: '0.3%', fraudCount: 120, total: 40120 },
-  { bucket: '$10–$50', fraudRate: '0.6%', fraudCount: 540, total: 90210 },
-  { bucket: '$50–$200', fraudRate: '1.1%', fraudCount: 410, total: 37200 },
-  { bucket: '$200+', fraudRate: '2.4%', fraudCount: 134, total: 5580 },
-]
+    score: Number(r.lof_score),
+  }
+}
 
 export default function InternalReport() {
+  const [summary, setSummary] = useState<Summary | null>(null)
+  const [categories, setCategories] = useState<CategoryRow[]>([])
+  const [locations, setLocations] = useState<LocationRow[]>([])
+  const [amounts, setAmounts] = useState<AmountRow[]>([])
+  const [clusters, setClusters] = useState<ClusterRow[]>([])
+  const [flagged, setFlagged] = useState<FlaggedRow[]>([])
+  const [doubleFlagged, setDoubleFlagged] = useState<DoubleFlaggedRow[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    Promise.all([
+      api.summary(),
+      api.byCategory(),
+      api.byLocation(),
+      api.byAmount(),
+      api.clusters('category'),
+      api.flagged(),
+      api.doubleFlagged(),
+    ])
+      .then(([s, c, l, a, cl, f, df]) => {
+        setSummary(s)
+        setCategories(c)
+        setLocations(l)
+        setAmounts(a)
+        setClusters(cl)
+        setFlagged(f)
+        setDoubleFlagged(df)
+      })
+      .catch(e => setError(String(e)))
+  }, [])
+
   return (
     <div className="page">
       <header className="reportHeader">
         <div>
           <h1 className="title">Credit Card Fraud Detection — Internal Report</h1>
-          <p className="subtitle">
-            Showcase dashboard (mock data). Replace with notebook-exported JSON later.
-          </p>
-
+          <p className="subtitle">Live data from Supabase. LOF + DBSCAN analysis.</p>
           <div className="metaRow">
-            <span className="metaPill">Datasets: Kaggle (2 sources)</span>
+            <span className="metaPill">Dataset: transactions_detailed (14k rows)</span>
             <span className="metaPill">Audience: Fraud analytics team</span>
-            <span className="metaPill">Last updated: 2026-04-30</span>
+            {summary && (
+              <span className="metaPill">
+                Updated: {new Date(summary.computed_at).toLocaleDateString()}
+              </span>
+            )}
           </div>
         </div>
       </header>
+
+      {error && (
+        <div className="callout" style={{ marginTop: 12 }}>
+          <div className="calloutTitle">API error</div>
+          <div className="calloutText">{error}</div>
+        </div>
+      )}
 
       {/* 1) Executive Summary */}
       <section className="section">
@@ -73,93 +99,125 @@ export default function InternalReport() {
           <h2 className="sectionTitle">Executive Summary</h2>
           <p className="sectionDesc">High-level view for ops and triage.</p>
         </div>
-
         <div className="kpis">
-          <KpiCard label="Total Transactions" value="128,442" hint="Selected period" />
-          <KpiCard label="Fraud Count" value="1,204" hint="Known + flagged" />
-          <KpiCard label="Fraud Rate" value="0.94%" hint="Fraud / total" />
-          <KpiCard label="$ Amount at Risk" value="$412,870" hint="Est. fraud sum" />
+          <KpiCard
+            label="Total Transactions"
+            value={summary ? fmt(summary.total_transactions) : '—'}
+            hint="transactions_detailed"
+          />
+          <KpiCard
+            label="Fraud Count"
+            value={summary ? fmt(summary.fraud_transactions) : '—'}
+            hint="Known fraud (is_fraud=1)"
+          />
+          <KpiCard
+            label="Fraud Rate"
+            value={summary ? pct(summary.fraud_rate) : '—'}
+            hint="Fraud / total"
+          />
+          <KpiCard
+            label="$ Amount at Risk"
+            value={summary ? dollar(summary.fraud_amount) : '—'}
+            hint="Sum of fraud transaction amounts"
+          />
         </div>
+      </section>
 
-        <Panel title="Key Takeaways" subtitle="Short bullet summary (report-style)">
-          <ul className="bullets">
-            {takeaways.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
+      {/* 2) Fraud by Category */}
+      <section className="section">
+        <div className="sectionHeader">
+          <h2 className="sectionTitle">Fraud by Category</h2>
+          <p className="sectionDesc">Fraud rate per merchant category, colored by group.</p>
+        </div>
+        <Panel title="Fraud Rate by Category" subtitle="DBSCAN outliers highlighted via Cluster Results below">
+          {categories.length > 0 ? (
+            <CategoryChart data={categories} />
+          ) : (
+            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
+          )}
         </Panel>
       </section>
 
-      {/* 2) Trends */}
+      {/* 3) Fraud by Location */}
       <section className="section">
         <div className="sectionHeader">
-          <h2 className="sectionTitle">Trends</h2>
-          <p className="sectionDesc">How fraud volume and rate change over time.</p>
+          <h2 className="sectionTitle">Fraud by Location</h2>
+          <p className="sectionDesc">Top 15 cities by fraud rate.</p>
         </div>
-
-        <div className="grid">
-          <Panel title="Fraud Count Over Time" subtitle="Daily/weekly fraud volume">
-            <Placeholder label="Line chart placeholder (fraud count over time)" />
-          </Panel>
-
-          <Panel title="Fraud Rate Over Time" subtitle="Fraud % trend">
-            <Placeholder label="Line/area chart placeholder (fraud rate over time)" />
-          </Panel>
-        </div>
+        <Panel title="Top 15 Cities by Fraud Rate">
+          {locations.length > 0 ? (
+            <LocationTable data={locations} />
+          ) : (
+            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
+          )}
+        </Panel>
       </section>
 
-      {/* 3) Where + What */}
+      {/* 4) Fraud by Amount */}
       <section className="section">
         <div className="sectionHeader">
-          <h2 className="sectionTitle">Where + What</h2>
-          <p className="sectionDesc">Breakdowns to identify patterns and hotspots.</p>
+          <h2 className="sectionTitle">Fraud by Amount</h2>
+          <p className="sectionDesc">Fraud rates across transaction size buckets.</p>
         </div>
-
-        <div className="grid">
-          <Panel title="Fraud by Amount Bucket" subtitle="Simple segmentation for risk review">
-            <div className="tableWrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Bucket</th>
-                    <th className="num">Fraud rate</th>
-                    <th className="num">Fraud count</th>
-                    <th className="num">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {amountBuckets.map((r) => (
-                    <tr key={r.bucket}>
-                      <td>{r.bucket}</td>
-                      <td className="num">{r.fraudRate}</td>
-                      <td className="num">{r.fraudCount}</td>
-                      <td className="num">{r.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-
-          <Panel title="Optional Breakdown" subtitle="Category/location/merchant (depends on columns)">
-            <Placeholder label="If available: top categories/locations/merchants" />
-          </Panel>
-        </div>
+        <Panel title="Fraud by Amount Bucket" subtitle="Risk tier from dim_amount_bucket">
+          {amounts.length > 0 ? (
+            <AmountTable data={amounts} />
+          ) : (
+            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
+          )}
+        </Panel>
       </section>
 
-      {/* 4) Investigations */}
+      {/* 5) Cluster Results */}
+      <section className="section">
+        <div className="sectionHeader">
+          <h2 className="sectionTitle">Cluster Results (Category)</h2>
+          <p className="sectionDesc">DBSCAN assignments — cluster -1 are noise/outlier categories.</p>
+        </div>
+        <Panel title="DBSCAN Clusters — Category Dimension">
+          {clusters.length > 0 ? (
+            <ClusterPanel data={clusters} dimension="category" />
+          ) : (
+            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
+          )}
+        </Panel>
+      </section>
+
+      {/* 6) Investigations Queue */}
       <section className="section">
         <div className="sectionHeader">
           <h2 className="sectionTitle">Investigations Queue</h2>
-          <p className="sectionDesc">Recent/high-risk transactions for analyst review.</p>
+          <p className="sectionDesc">All LOF-flagged transactions sorted by score.</p>
         </div>
-
         <Panel
-          title="Recent Flagged Transactions"
-          subtitle="Sorted by risk score (planned)"
-          right={<button className="btn">Export (later)</button>}
+          title="LOF-Flagged Transactions"
+          subtitle={flagged.length > 0 ? `${fmt(flagged.length)} anomalies` : ''}
+          right={<span className="badge badgeBad">LOF</span>}
         >
-          <TransactionsTable rows={investigations} showScore />
+          {flagged.length > 0 ? (
+            <TransactionsTable rows={flagged.map(toTxRow)} showScore />
+          ) : (
+            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
+          )}
+        </Panel>
+      </section>
+
+      {/* 7) Cross-method Flags */}
+      <section className="section">
+        <div className="sectionHeader">
+          <h2 className="sectionTitle">Cross-Method Flags</h2>
+          <p className="sectionDesc">Transactions caught by both LOF and at least one DBSCAN dimension.</p>
+        </div>
+        <Panel
+          title="Double-Flagged Transactions"
+          subtitle={doubleFlagged.length > 0 ? `${fmt(doubleFlagged.length)} intersections` : ''}
+          right={<span className="badge badgeBad">LOF + DBSCAN</span>}
+        >
+          {doubleFlagged.length > 0 ? (
+            <DoubleFlaggedTable data={doubleFlagged} />
+          ) : (
+            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
+          )}
         </Panel>
       </section>
     </div>
