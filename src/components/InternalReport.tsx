@@ -41,7 +41,9 @@ export default function InternalReport() {
   const [categories, setCategories] = useState<CategoryRow[]>([])
   const [locations, setLocations] = useState<LocationRow[]>([])
   const [amounts, setAmounts] = useState<AmountRow[]>([])
-  const [clusters, setClusters] = useState<ClusterRow[]>([])
+  const [clustersCat, setClustersCat] = useState<ClusterRow[]>([])
+  const [clustersLoc, setClustersLoc] = useState<ClusterRow[]>([])
+  const [clustersAmt, setClustersAmt] = useState<ClusterRow[]>([])
   const [flagged, setFlagged] = useState<FlaggedRow[]>([])
   const [doubleFlagged, setDoubleFlagged] = useState<DoubleFlaggedRow[]>([])
   const [loaded, setLoaded] = useState(false)
@@ -54,14 +56,18 @@ export default function InternalReport() {
       api.byLocation(),
       api.byAmount(),
       api.clusters('category'),
+      api.clusters('location'),
+      api.clusters('amount'),
       api.flagged(),
       api.doubleFlagged(),
-    ]).then(([s, c, l, a, cl, f, df]) => {
+    ]).then(([s, c, l, a, clCat, clLoc, clAmt, f, df]) => {
       if (s.status === 'fulfilled') setSummary(s.value)
       if (c.status === 'fulfilled') setCategories(c.value)
       if (l.status === 'fulfilled') setLocations(l.value)
       if (a.status === 'fulfilled') setAmounts(a.value)
-      if (cl.status === 'fulfilled') setClusters(cl.value)
+      if (clCat.status === 'fulfilled') setClustersCat(clCat.value)
+      if (clLoc.status === 'fulfilled') setClustersLoc(clLoc.value)
+      if (clAmt.status === 'fulfilled') setClustersAmt(clAmt.value)
       if (f.status === 'fulfilled') setFlagged(f.value)
       if (df.status === 'fulfilled') setDoubleFlagged(df.value)
 
@@ -140,7 +146,7 @@ export default function InternalReport() {
           <p className="sectionDesc">DBSCAN assignments — cluster -1 are noise/outlier categories.</p>
         </div>
         <Panel title="DBSCAN Clusters — Category Dimension">
-          {!loaded ? <Spinner /> : clusters.length > 0 ? <ClusterPanel data={clusters} dimension="category" /> : <Empty />}
+          {!loaded ? <Spinner /> : clustersCat.length > 0 ? <ClusterPanel data={clustersCat} dimension="category" /> : <Empty />}
         </Panel>
       </section>
 
