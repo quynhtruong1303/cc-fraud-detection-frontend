@@ -58,7 +58,7 @@ export default function CategoryChart({ data }: Props) {
             borderRadius: 10,
             fontSize: 12,
           }}
-          formatter={(value: number, _name: string, entry: { payload?: { group?: string } }) => [
+          formatter={(value, _name, entry: { payload?: { group?: string } }) => [
             `${value}%`,
             entry.payload?.group ?? 'Fraud rate',
           ]}
