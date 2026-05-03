@@ -11,12 +11,11 @@ import DoubleFlaggedTable from './DoubleFlaggedTable'
 import TransactionsTable from './TransactionsTable'
 import type { TxRow } from './TransactionsTable'
 
+const Spinner = () => <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
+const Empty = () => <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>No data</div>
+
 function fmt(n: number) {
   return n.toLocaleString()
-}
-
-function dollar(n: number) {
-  return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function pct(r: number) {
@@ -44,10 +43,10 @@ export default function InternalReport() {
   const [clusters, setClusters] = useState<ClusterRow[]>([])
   const [flagged, setFlagged] = useState<FlaggedRow[]>([])
   const [doubleFlagged, setDoubleFlagged] = useState<DoubleFlaggedRow[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       api.summary(),
       api.byCategory(),
       api.byLocation(),
@@ -55,49 +54,31 @@ export default function InternalReport() {
       api.clusters('category'),
       api.flagged(),
       api.doubleFlagged(),
-    ])
-      .then(([s, c, l, a, cl, f, df]) => {
-        setSummary(s)
-        setCategories(c)
-        setLocations(l)
-        setAmounts(a)
-        setClusters(cl)
-        setFlagged(f)
-        setDoubleFlagged(df)
-      })
-      .catch(e => setError(String(e)))
+    ]).then(([s, c, l, a, cl, f, df]) => {
+      if (s.status === 'fulfilled') setSummary(s.value)
+      if (c.status === 'fulfilled') setCategories(c.value)
+      if (l.status === 'fulfilled') setLocations(l.value)
+      if (a.status === 'fulfilled') setAmounts(a.value)
+      if (cl.status === 'fulfilled') setClusters(cl.value)
+      if (f.status === 'fulfilled') setFlagged(f.value)
+      if (df.status === 'fulfilled') setDoubleFlagged(df.value)
+
+      setLoaded(true)
+    })
   }, [])
 
   return (
     <div className="page">
       <header className="reportHeader">
         <div>
-          <h1 className="title">Credit Card Fraud Detection — Internal Report</h1>
-          <p className="subtitle">Live data from Supabase. LOF + DBSCAN analysis.</p>
-          <div className="metaRow">
-            <span className="metaPill">Dataset: transactions_detailed (14k rows)</span>
-            <span className="metaPill">Audience: Fraud analytics team</span>
-            {summary && (
-              <span className="metaPill">
-                Updated: {new Date(summary.computed_at).toLocaleDateString()}
-              </span>
-            )}
-          </div>
+          <h1 className="title">Credit Card Fraud Pattern Analysis Dashboard</h1>
         </div>
       </header>
 
-      {error && (
-        <div className="callout" style={{ marginTop: 12 }}>
-          <div className="calloutTitle">API error</div>
-          <div className="calloutText">{error}</div>
-        </div>
-      )}
-
-      {/* 1) Executive Summary */}
+{/* 1) Executive Summary */}
       <section className="section">
         <div className="sectionHeader">
-          <h2 className="sectionTitle">Executive Summary</h2>
-          <p className="sectionDesc">High-level view for ops and triage.</p>
+          <h2 className="sectionTitle">Dataset Summary</h2>
         </div>
         <div className="kpis">
           <KpiCard
@@ -115,11 +96,6 @@ export default function InternalReport() {
             value={summary ? pct(summary.fraud_rate) : '—'}
             hint="Fraud / total"
           />
-          <KpiCard
-            label="$ Amount at Risk"
-            value={summary ? dollar(summary.fraud_amount) : '—'}
-            hint="Sum of fraud transaction amounts"
-          />
         </div>
       </section>
 
@@ -130,11 +106,7 @@ export default function InternalReport() {
           <p className="sectionDesc">Fraud rate per merchant category, colored by group.</p>
         </div>
         <Panel title="Fraud Rate by Category" subtitle="DBSCAN outliers highlighted via Cluster Results below">
-          {categories.length > 0 ? (
-            <CategoryChart data={categories} />
-          ) : (
-            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
-          )}
+          {!loaded ? <Spinner /> : categories.length > 0 ? <CategoryChart data={categories} /> : <Empty />}
         </Panel>
       </section>
 
@@ -145,11 +117,7 @@ export default function InternalReport() {
           <p className="sectionDesc">Top 15 cities by fraud rate.</p>
         </div>
         <Panel title="Top 15 Cities by Fraud Rate">
-          {locations.length > 0 ? (
-            <LocationTable data={locations} />
-          ) : (
-            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
-          )}
+          {!loaded ? <Spinner /> : locations.length > 0 ? <LocationTable data={locations} /> : <Empty />}
         </Panel>
       </section>
 
@@ -160,11 +128,7 @@ export default function InternalReport() {
           <p className="sectionDesc">Fraud rates across transaction size buckets.</p>
         </div>
         <Panel title="Fraud by Amount Bucket" subtitle="Risk tier from dim_amount_bucket">
-          {amounts.length > 0 ? (
-            <AmountTable data={amounts} />
-          ) : (
-            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
-          )}
+          {!loaded ? <Spinner /> : amounts.length > 0 ? <AmountTable data={amounts} /> : <Empty />}
         </Panel>
       </section>
 
@@ -175,11 +139,7 @@ export default function InternalReport() {
           <p className="sectionDesc">DBSCAN assignments — cluster -1 are noise/outlier categories.</p>
         </div>
         <Panel title="DBSCAN Clusters — Category Dimension">
-          {clusters.length > 0 ? (
-            <ClusterPanel data={clusters} dimension="category" />
-          ) : (
-            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
-          )}
+          {!loaded ? <Spinner /> : clusters.length > 0 ? <ClusterPanel data={clusters} dimension="category" /> : <Empty />}
         </Panel>
       </section>
 
@@ -191,14 +151,10 @@ export default function InternalReport() {
         </div>
         <Panel
           title="LOF-Flagged Transactions"
-          subtitle={flagged.length > 0 ? `${fmt(flagged.length)} anomalies` : ''}
+          subtitle={loaded && flagged.length > 0 ? `${fmt(flagged.length)} anomalies` : ''}
           right={<span className="badge badgeBad">LOF</span>}
         >
-          {flagged.length > 0 ? (
-            <TransactionsTable rows={flagged.map(toTxRow)} showScore />
-          ) : (
-            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
-          )}
+          {!loaded ? <Spinner /> : flagged.length > 0 ? <TransactionsTable rows={flagged.map(toTxRow)} showScore /> : <Empty />}
         </Panel>
       </section>
 
@@ -210,14 +166,10 @@ export default function InternalReport() {
         </div>
         <Panel
           title="Double-Flagged Transactions"
-          subtitle={doubleFlagged.length > 0 ? `${fmt(doubleFlagged.length)} intersections` : ''}
+          subtitle={loaded && doubleFlagged.length > 0 ? `${fmt(doubleFlagged.length)} intersections` : ''}
           right={<span className="badge badgeBad">LOF + DBSCAN</span>}
         >
-          {doubleFlagged.length > 0 ? (
-            <DoubleFlaggedTable data={doubleFlagged} />
-          ) : (
-            <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
-          )}
+          {!loaded ? <Spinner /> : doubleFlagged.length > 0 ? <DoubleFlaggedTable data={doubleFlagged} /> : <Empty />}
         </Panel>
       </section>
     </div>
