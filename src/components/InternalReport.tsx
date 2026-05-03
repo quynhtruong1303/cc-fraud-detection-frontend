@@ -10,6 +10,7 @@ import ClusterPanel from './ClusterPanel'
 import DoubleFlaggedTable from './DoubleFlaggedTable'
 import TransactionsTable from './TransactionsTable'
 import type { TxRow } from './TransactionsTable'
+import PageNav from './PageNav'
 
 const Spinner = () => <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
 const Empty = () => <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>No data</div>
@@ -44,6 +45,7 @@ export default function InternalReport() {
   const [flagged, setFlagged] = useState<FlaggedRow[]>([])
   const [doubleFlagged, setDoubleFlagged] = useState<DoubleFlaggedRow[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [page, setPage] = useState<1 | 2 | 3>(1)
 
   useEffect(() => {
     Promise.allSettled([
@@ -70,9 +72,8 @@ export default function InternalReport() {
   return (
     <div className="page">
       <header className="reportHeader">
-        <div>
-          <h1 className="title">Credit Card Fraud Pattern Analysis Dashboard</h1>
-        </div>
+        <h1 className="title">Credit Card Fraud Pattern Analysis Dashboard</h1>
+        <PageNav page={page} onPage={setPage} />
       </header>
 
 {/* 1) Executive Summary */}
