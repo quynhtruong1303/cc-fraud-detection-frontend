@@ -305,3 +305,13 @@
   color: var(--muted-2);
 }
 
+.textPrimary {
+  color: var(--text);
+}
+
+.stateMsg {
+  color: var(--muted-2);
+  padding: 12px;
+  font-size: 13px;
+}
+

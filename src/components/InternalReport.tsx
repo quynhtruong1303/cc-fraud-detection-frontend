@@ -13,8 +13,8 @@ import type { TxRow } from './TransactionsTable'
 import PageNav from './PageNav'
 import GeoMap from './GeoMap'
 
-const Spinner = () => <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>Loading…</div>
-const Empty = () => <div style={{ color: 'var(--muted-2)', padding: 12, fontSize: 13 }}>No data</div>
+const Spinner = () => <div className="stateMsg">Loading...</div>
+const Empty = () => <div className="stateMsg">No data</div>
 
 function fmt(n: number) { return n.toLocaleString() }
 function pct(r: number) { return (r * 100).toFixed(2) + '%' }
@@ -140,7 +140,7 @@ export default function InternalReport() {
             </div>
             <div className="callout">
               <div className="calloutTitle">How to read these results</div>
-              <p className="calloutText">Clusters numbered 0, 1, 2… represent coherent groups of similar transactions. <strong style={{ color: 'var(--text)' }}>Cluster -1 (shown in red) means DBSCAN found no neighbors close enough</strong> - these are the anomalies our pipeline flags for further review.</p>
+              <p className="calloutText">Clusters numbered 0, 1, 2… represent coherent groups of similar transactions. <strong className="textPrimary">Cluster -1 (shown in red) means DBSCAN found no neighbors close enough</strong> - these are the anomalies our pipeline flags for further review.</p>
             </div>
           </section>
 
@@ -251,7 +251,7 @@ export default function InternalReport() {
             </div>
             <div className="callout">
               <div className="calloutTitle">Fix: recall-first threshold strategy + feature engineering</div>
-              <p className="calloutText">We retrained with engineered features (<code>amt_log1p</code>, <code>city_pop_log1p</code>, <code>is_weekend</code>), a 60/15/25 split, and a grid search over <code>n_neighbors</code> and contamination. The threshold was chosen to guarantee ≥95% validation recall, then precision was maximised - giving us <strong style={{ color: 'var(--text)' }}>precision 0.503 · recall 0.805 · F2 0.719</strong>. The validation threshold plot shows the trade-off we navigated.</p>
+              <p className="calloutText">We retrained with engineered features (<code>amt_log1p</code>, <code>city_pop_log1p</code>, <code>is_weekend</code>), a 60/15/25 split, and a grid search over <code>n_neighbors</code> and contamination. The threshold was chosen to guarantee ≥95% validation recall, then precision was maximised - giving us <strong className="textPrimary">precision 0.503 · recall 0.805 · F2 0.719</strong>. The validation threshold plot shows the trade-off we navigated.</p>
             </div>
             <div className="plotGrid">
               {[

@@ -1,8 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { GeoRow } from '../api'
+
+const GEO_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'
+const W = 800
+const H = 500
+
+const LEGEND = [
+  { color: '#34d399', label: '< 4%' },
+  { color: '#fbbf24', label: '4 - 8%' },
+  { color: '#f97316', label: '8 - 15%' },
+  { color: '#ef4444', label: '> 15%' },
+]
 
 function fraudColor(rate: number) {
   if (rate >= 0.15) return '#ef4444'
@@ -15,33 +26,21 @@ type Props = { data: GeoRow[] }
 
 export default function GeoMap({ data }: Props) {
   const [paths, setPaths] = useState<string[]>([])
-  const svgRef = useRef<SVGSVGElement>(null)
-  const W = 800
-  const H = 500
+  const projection = useMemo(() => geoAlbersUsa().scale(1000).translate([W / 2, H / 2]), [])
 
   useEffect(() => {
-    fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+    const path = geoPath(projection)
+    fetch(GEO_URL)
       .then(r => r.json())
       .then((topo: Topology) => {
-        const projection = geoAlbersUsa().scale(1000).translate([W / 2, H / 2])
-        const path = geoPath(projection)
         const states = feature(topo, topo.objects.states as GeometryCollection)
         const statePaths = (states.features as GeoJSON.Feature[]).map(f => path(f) ?? '')
         setPaths(statePaths)
       })
-  }, [])
-
-  const projection = geoAlbersUsa().scale(1000).translate([W / 2, H / 2])
-
-  const LEGEND = [
-    { color: '#34d399', label: '< 4%' },
-    { color: '#fbbf24', label: '4 - 8%' },
-    { color: '#f97316', label: '8 - 15%' },
-    { color: '#ef4444', label: '> 15%' },
-  ]
+  }, [projection])
 
   return (
-    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
       {paths.map((d, i) => (
         <path key={i} d={d} fill="var(--surface-2)" stroke="var(--border-2)" strokeWidth={0.5} />
       ))}
@@ -63,7 +62,6 @@ export default function GeoMap({ data }: Props) {
         )
       })}
 
-      {/* Legend */}
       <g transform={`translate(${W - 130}, ${H - 90})`}>
         <rect x={-10} y={-14} width={128} height={86} rx={6} fill="#111418" fillOpacity={0.85} stroke="rgba(148,163,184,0.18)" strokeWidth={1} />
         <text x={0} y={0} fontSize={10} fontWeight={700} fill="#64748b" letterSpacing="0.08em" textAnchor="start" style={{ textTransform: 'uppercase' }}>Fraud Rate</text>
