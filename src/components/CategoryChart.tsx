@@ -5,7 +5,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from 'recharts'
 import type { CategoryRow } from '../api'
 
@@ -18,10 +17,6 @@ const GROUP_COLORS: Record<string, string> = {
   Shopping:  '#fbbf24',
   Travel:    '#fb923c',
   Leisure:   '#f472b6',
-}
-
-function pct(rate: number) {
-  return `${(rate * 100).toFixed(2)}%`
 }
 
 type Props = { data: CategoryRow[] }
@@ -68,18 +63,23 @@ export default function CategoryChart({ data }: Props) {
             entry.payload?.group ?? 'Fraud rate',
           ]}
         />
-        <Bar dataKey="fraud_rate" radius={[0, 4, 4, 0]}>
-          {chartData.map((entry, i) => (
-            <Cell
-              key={i}
-              fill={GROUP_COLORS[entry.group] ?? '#94a3b8'}
+        <Bar
+          dataKey="fraud_rate"
+          radius={[0, 4, 4, 0]}
+          shape={(props: { x?: number; y?: number; width?: number; height?: number; payload?: { group?: string } }) => (
+            <rect
+              x={props.x ?? 0}
+              y={props.y ?? 0}
+              width={Math.max(props.width ?? 0, 0)}
+              height={Math.max(props.height ?? 0, 0)}
+              fill={GROUP_COLORS[props.payload?.group ?? ''] ?? '#94a3b8'}
               fillOpacity={0.85}
+              rx={4}
             />
-          ))}
-        </Bar>
+          )}
+        />
       </BarChart>
     </ResponsiveContainer>
   )
 }
 
-export { pct }
