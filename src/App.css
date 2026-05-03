@@ -5,15 +5,6 @@
   color: var(--text);
 }
 
-.header {
-  display: flex;
-  gap: 16px;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
-}
-
 .title {
   margin: 0;
   font-size: 22px;
@@ -58,31 +49,6 @@
   border: 1px solid var(--border-2);
 }
 
-.content {
-  margin-top: 10px;
-}
-
-.dash {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.filterPill {
-  font-size: 12px;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px dashed var(--border-2);
-  padding: 8px 10px;
-  border-radius: 999px;
-}
-
 .kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -125,18 +91,6 @@
   color: var(--muted-2);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-@media (max-width: 900px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .panel {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -175,33 +129,6 @@
 .panelRight {
   display: flex;
   align-items: flex-start;
-}
-
-.placeholder {
-  border: 1px dashed var(--border-2);
-  background: var(--surface-3);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.placeholderInner {
-  text-align: center;
-  padding: 10px;
-  max-width: 360px;
-}
-
-.placeholderTitle {
-  font-weight: 950;
-  font-size: 13px;
-  margin-bottom: 6px;
-  color: var(--text);
-}
-
-.placeholderText {
-  font-size: 12px;
-  color: var(--muted-2);
 }
 
 .tableWrap {
@@ -320,22 +247,6 @@
   margin-bottom: 18px;
 }
 
-.metaRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.metaPill {
-  font-size: 12px;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 6px 10px;
-  border-radius: 999px;
-}
-
 .section {
   display: flex;
   flex-direction: column;
@@ -361,12 +272,3 @@
   color: var(--muted-2);
 }
 
-.bullets {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--muted);
-}
-
-.bullets li {
-  margin: 6px 0;
-}

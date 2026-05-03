@@ -177,13 +177,13 @@ export default function InternalReport() {
             <div className="kpis">
               <KpiCard
                 label="LOF-Flagged Transactions"
-                value={loaded ? fmt(flagged.length) : '—'}
-                hint="Score below −0.059 threshold"
+                value="2,059"
+                hint="Model output — Render free tier caps API response at 1,000"
               />
               <KpiCard
                 label="% of Dataset"
-                value={loaded && flagged.length > 0 ? pct(flagged.length / 14000) : '—'}
-                hint="Out of 14,000 transactions"
+                value="14.71%"
+                hint="2,059 of 14,000 transactions"
               />
             </div>
           </section>
